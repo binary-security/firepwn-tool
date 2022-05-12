@@ -18,27 +18,51 @@ document.addEventListener('DOMContentLoaded', function() {
     let instance = M.Collapsible.getInstance(elem);
     instance.open();
 
+    if (window.localStorage.getItem('firebaseConfig')) {
+        try{
+            firebaseConfig = JSON.parse(window.localStorage.getItem('firebaseConfig'));
+            initFirebaseApp(firebaseConfig);
+        } catch(err) {
+            console.log('Unable to parse Firebase Config from JSON: '+ err);
+            return;
+        }
+    }
 
-    // init form 
-
+    // Init form
     initForm = document.querySelector('#init-form');
-    initForm.addEventListener('submit', e => {
+    initFormJson = document.querySelector('#init-form-json');
+
+    // Init form JSON
+    initForm.addEventListener('submit', initFormHandler);
+    initFormJson.addEventListener('submit', initFormHandler);
+
+    function initFormHandler(e){
         e.preventDefault();
+        let firebaseConfig;
 
-        // fetch json init
-        let input_apiKey = initForm['apiKey'];
-        let input_authDomain = initForm['authDomain'];
-        let input_databaseURL = initForm['databaseURL'];
-        let input_projectId = initForm['projectId'];
-        let input_btnInit = initForm['btn-init']
+        if (e.srcElement.id == 'init-form'){
+            // create a firebaseConfig
+            firebaseConfig = {
+                apiKey: initForm['apiKey'].value,
+                authDomain:  initForm['authDomain'].value,
+                databaseURL: initForm['databaseURL'].value,
+                projectId: initForm['projectId'].value
+            };
 
-        // create a firebaseConfig
-        let firebaseConfig = { 
-            apiKey: input_apiKey.value,
-            authDomain: input_authDomain.value,
-            databaseURL: input_databaseURL.value,
-            projectId: input_projectId.value
-        };
+        } else if (e.srcElement.id == 'init-form-json'){
+            try{
+                firebaseConfig = JSON.parse(initFormJson['firebase-config'].value);
+            } catch(err) {
+                console.log('Unable to parse Firebase Config from JSON: '+ err);
+                return;
+            }
+        }
+
+        window.localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
+        initFirebaseApp(firebaseConfig);
+    }
+
+    function initFirebaseApp(firebaseConfig) {
 
         // init firebase
         try {
@@ -46,36 +70,35 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (e) {
             console.log(e);
             M.toast({html: e.message});
-            app.delete(app); // prevent dupliace db error 
+            app.delete(app); // prevent dupliace db error
         }
-        
+
         // init firebase services
         firestoreService = firebase.firestore();
         authService = firebase.auth();
         functionsService = firebase.functions();
 
-        // upadte DOM
-        input_apiKey.disabled = true;
-        input_authDomain.disabled = true;
-        input_databaseURL.disabled = true;
-        input_projectId.disabled = true;
-        input_btnInit.disabled = true;
-
         // show gui
         elem = document.querySelector('#init-collapsible');
         let instance = M.Collapsible.getInstance(elem);
         instance.close();
+        elem.style = "display: none";
         gui = document.getElementById('ui').style = "display: block";
 
+        // Show config view
+        firebaseConfigPane = document.querySelector('#firebase-config-pane');
+        firebaseConfigPane.style = "display: block";
+
+        firebaseConfigPre = document.querySelector('#firebase-config-pre');
+        firebaseConfigPre.innerHTML = JSON.stringify(firebaseConfig, null, 2);
 
         // register a auth event
-
         authService.onAuthStateChanged( user => {
             authPane = document.querySelector('#auth-pane');
             let status = document.querySelector('#auth-status');
-            if (user) { 
+            if (user) {
                 status.innerHTML = `logged in as ${user.email} <br /> (uid: ${user.uid})
-                
+
                 <p />
                 <button onClick="authService.signOut().then( () => { M.toast( { html: 'Signed out' } ); output('Logged out');  } );" class="btn yellow darken-2 z-depth-0">Sign out</button>
                 `;
@@ -87,13 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 authPane.style = "display: block;";
             }
         });
-    
-
-        
-    });
-
+    };
 
     // db explorer
+
     opSelect = document.querySelector("#op-name");
     opSelect.addEventListener('change', e => {
         if(['set', 'update'].includes(e.target.value)) {
@@ -105,9 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-
     // auth service
-
+    // Password login
     loginForm = document.querySelector('#signin-form')
     loginForm.addEventListener('submit', e => {
         e.preventDefault();
@@ -130,7 +149,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Magic Link Login
+    loginFormMagicLink = document.querySelector('#signin-form-magic-link')
+    loginFormMagicLink.addEventListener('submit', e => {
+        e.preventDefault();
 
+        let email = loginFormMagicLink['email'].value;
+        let magicLink = loginFormMagicLink['magic-link'].value;
+
+        try {
+            authService.signInWithEmailLink(email, magicLink).then( creds => {
+                console.log(creds.user.email);
+                console.log(creds.user.uid);
+            }).catch(e => {
+                M.toast( {html: e.message} );
+                console.log(e);
+                output(`<b>Error:</b> Firebase auth failed. For more info, open the browser's console.`);
+            });
+
+        } catch (e) {
+            M.toast( { html: e.message } );
+        }
+    });
+
+    // Registration
     signupForm = document.querySelector('#signup-form')
     signupForm.addEventListener('submit', e => {
         e.preventDefault();
@@ -174,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             };
 
-            // set 
+            // set
             if(op == 'set') {
                 try {
                     if(docId) {
@@ -216,9 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log(e);
                     output(`<b>Error:</b> ${e.message}`);
                 }
-            } 
+            }
         } else {
-            
+
             // get
             if(op == 'get') {
             try {
@@ -227,8 +269,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     firestoreService.collection(collection_name).doc(docId).get().then(snapshot => {
                         data = snapshot.data();
                         if(!data) {
-                            throw { message: `Document ${docId} not found` }; 
-                        } 
+                            throw { message: `Document ${docId} not found` };
+                        }
                         console.log("firestore response: ", data);
                         output(`<b>Getting <i>${docId}</i> from <i>${collection_name}</i> </b> <br /> <b>Response</b>: <br /> ${escapeHtml(JSON.stringify(data))}`);
                     }).catch(e => {
@@ -297,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
             M.toast({html: `Please enter a valid invoke syntax`});
             return ;
         }
-        
+
         if(funcParams[funcParams.length-1] != ')') {
             M.toast({html: `Please enter a valid invoke syntax. <br />Reason: The input is not ending with  ')'`});
             return ;
@@ -327,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
             M.toast({html: "Invalid invoke syntax. For more information, open the browser's console."});
             console.log(e);
         }
-        
+
     });
 
 });
@@ -339,7 +381,7 @@ function output(data) {
 }
 
 function escapeHtml(data) { // making the output less messy in case the firestore db contains entries with html tags in it
-    return data           
+    return data
          .replace(/&/g, "&amp;")
          .replace(/</g, "&lt;")
          .replace(/>/g, "&gt;")

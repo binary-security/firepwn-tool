@@ -52,16 +52,24 @@
 				<br />
 				<button type="submit" name="btn-init" id="btn-init" class="btn yellow darken-2 z-depth-0">Start</button>
 		</form>
+		<hr>
+		Or alternatively:
+		<form id="init-form-json">
+			<div class="form-group">
+				<label for="firebase-config">Firebase config as JSON</label>
+				<textarea name="firebase-config" id="firebase-config" rows="4" class="form-control" required  ></textarea>
+			  </div>
+				<button type="submit" name="btn-init" id="btn-init-json" class="btn yellow darken-2 z-depth-0">Start</button>
+		</form>
 			</div>
 			</div>
 		</li>
 		</ul>
 		<!-- INIT FORM END -->
 	</main>
-<p />
 <!-- UI START -->
 	<div class="container" id="ui" style="display: none;">
-    <div class="row"> 
+    <div class="row">
 		<div class="col s9">
 
 		<ul class="collapsible">
@@ -75,7 +83,7 @@
 							<label for="collection_name">Collection name / Path</label>
 					</div>
 
-				<br /> 
+				<br />
 
 				<div class="input-field col s6">
 						<select name="op" id="op-name">
@@ -102,13 +110,13 @@
 			</form>
 			</div>
 		</li>
-		
+
 		<li>
 
 				<div class="collapsible-header"><i class="small material-icons">cloud</i> Cloud Functions</div>
 				<div class="collapsible-body">
 			<form id="invoke-cf-form">
-				Invoke a Cloud Function: 
+				Invoke a Cloud Function:
 				<input type="text" id="cloud-cmd" name="cloud-cmd" placeholder="example: makeAdmin({ email: 'shaq@pwn.com', isAdmin: true })" required />
 
 				<button type="submit" class="btn yellow darken-2 z-depth-0">Invoke</button>
@@ -120,6 +128,11 @@
 		</div>
 
 		<div class="col s3">
+			<div id="firebase-config-pane" style="display:none">
+				<pre id="firebase-config-pre"></pre>
+				<hr>
+			</div>
+
 			<h6> <i class="tiny material-icons">verified_user</i> Auth Service</h6>
 			<span id="auth-status"> <!-- auth status is rendered here --> </span>
 			<div id="auth-pane">
@@ -128,7 +141,7 @@
 					  <div class="collapsible-header"><i class="material-icons">contacts</i>Login</div>
 					  <div class="collapsible-body">
 						<form id='signin-form'>
-						  Email: 
+						  Email:
 							<input type="text" name="email" placeholder="test@test.com" required />
 
 						  Password:
@@ -138,10 +151,23 @@
 					  </div>
 					</li>
 					<li>
+					  <div class="collapsible-header"><i class="material-icons">contacts</i>Login with Magic Link</div>
+					  <div class="collapsible-body">
+						<form id='signin-form-magic-link'>
+						  Email:
+							<input type="text" name="email" placeholder="test@test.com" required />
+
+						  Magic Link:
+						  <input type="url" name="magic-link" placeholder="https://" required />
+						  <button type="submit"  id="signin-btn-magic-link" class="btn yellow darken-2 z-depth-0">Login</button>
+					    </form>
+					  </div>
+					</li>
+					<li>
 					  <div class="collapsible-header"><i class="material-icons">create</i>Register</div>
 					  <div class="collapsible-body">
 					<form id='signup-form'>
-							Email: 
+							Email:
 								<input type="text" class="input" name="email" placeholder="test@test.com" required />
 							Password:
 							<input type="password" name="password" placeholder="******" required />
@@ -151,11 +177,11 @@
 					</li>
 				  </ul>
 				</div>
-			
+
 		  </div>
-		
+
 	  </div>
-			
+
 	  <p />
 	  <b>Output / log:</b>
 	  <p />
@@ -165,7 +191,7 @@
 <!-- UI END -->
 
 	</div>
-	
+
     <footer class="footer">
       <div class="container">
        <a href='https://github.com/0xbigshaq'  target='_blank'>https://github.com/0xbigshaq</a>
