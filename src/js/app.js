@@ -277,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         output(`Error: ${e.message}`);
                     });
                 } else {
+
                     // get all documents inside a specific collection
                     firestoreService.collection(collection_name).get().then(snapshots => {
                         let result = '<b>Response</b>: <br />';
@@ -286,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         snapshots.docs.forEach( doc => {
                             data = doc.data();
+                            data.docId = doc.id;
                             console.log(data);
                             result += escapeHtml(JSON.stringify(data)) + "<br />";
                          });
