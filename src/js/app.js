@@ -66,7 +66,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // init firebase
         try {
+            console.log('Using Firebase SDK version: ' + firebase.SDK_VERSION);
             app = firebase.initializeApp(firebaseConfig);
+
+            if (firebaseConfig.hasOwnProperty('appId')) {
+                getRemoteFirebaseConfig()
+            }
         } catch (e) {
             console.log(e);
             M.toast({html: e.message});
@@ -282,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     firestoreService.collection(collection_name).get().then(snapshots => {
                         let result = '<b>Response</b>: <br />';
                         console.log("firestore response: ");
+                        console.log(snapshots)
                         if(!snapshots.docs.length) {
                             throw { message: `empty response` }
                         }
@@ -373,6 +379,84 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
     });
+
+
+    cloudStorageForm = document.querySelector('#firestore-storage-explorer');
+    cloudStorageForm.addEventListener('submit', e => {
+        e.preventDefault();
+
+        // console.log('Executing analyzeStorage for: ' + cloudStorageForm['bucket-name'].value);
+        analyzeStorage(cloudStorageForm['bucket-name'].value, cloudStorageForm['file-name'].value);
+
+    });
+
+    // Cloud Storage
+
+    function analyzeStorage(bucket, filename){
+
+
+        if (filename.startsWith('gs://')){
+            // Try to get a single file
+
+            bucketName = filename.match('(gs:\/\/[a-z0-9-.]*)\/')[1]
+            console.log('Extracted bucketname: ' + bucketName)
+
+            var storageService = firebase.app().storage(bucketName);
+            storageRef = storageService.ref();
+
+            filename = filename.substring(bucketName.length);
+
+            console.log('Listing filename: ' + filename);
+            var downloadUrl = storageRef.child(filename).getDownloadURL().then(url =>{
+                console.log(url);
+                output(url);
+                return;
+            }).catch((error) => {
+                // Handle any errors
+                console.log(error);
+                output(error);
+              });
+        }
+
+        if (bucket) {
+            // Else list bucket
+            console.log('Listing bucket');
+
+            var bucketURL = 'gs://'+ bucket
+            var storageService = firebase.app().storage(bucketURL);
+            storageRef = storageService.ref();
+
+            // Try to list all files in the bucket
+            storageRef.listAll()
+            .then((res) => {
+                res.prefixes.forEach((folderRef) => {
+                // All the prefixes under listRef.
+                // You may call listAll() recursively on them.
+                console.log(folderRef);
+                });
+                res.items.forEach((itemRef) => {
+                // All the items under listRef.
+                    console.log(itemRef);
+                });
+            }).catch((error) => {
+                // Uh-oh, an error occurred!
+                console.log('Error occurred while reading storage bucket: '+ error);
+            });
+
+        }
+    }
+
+    function getRemoteFirebaseConfig() {
+        console.log('Getting remote config');
+        try{
+            let remote_config = firebase.remoteConfig()
+            console.log(remote_config);
+            return remote_config;
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
 
 });
 
